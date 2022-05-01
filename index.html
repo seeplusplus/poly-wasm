@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <script>
+        window.addEventListener('load', function () {
+            let state = {};
+
+            initWasm(state);
+        });
+
+        function calculateRoots(roots, buffer) {
+            const aValue = document.querySelector('#quad_a').value;
+            const bValue = document.querySelector('#quad_b').value;
+            const cValue = document.querySelector('#quad_c').value;
+
+            roots(
+                Number(aValue),
+                Number(bValue),
+                Number(cValue)
+            );
+
+            getRoots(buffer);
+        }
+
+        function getRoots(buffer) {
+            let float_buffer = new Float32Array(buffer.buffer);
+
+            // real part 1, complex part 1
+            // real part 2, complex part 2
+            let [v1, v2] = [
+                [float_buffer[0], float_buffer[1]],
+                [float_buffer[2], float_buffer[3]]
+            ];
+
+            displayRoots(v1, v2);
+        }
+
+        function displayRoots(r1, r2) {
+            setRoots('.root_1', r1);
+            setRoots('.root_2', r2);
+        }
+
+        function setRoots(selector, root) {
+            const element = document.querySelector(selector);
+
+            element.querySelector('.text_real').textContent = root[0];
+            element.querySelector('.text_sign').textContent = root[1] < 0 ? '-' : '+';
+            element.querySelector('.text_imag').textContent = Math.abs(root[1]);
+
+            if (root[1] > 0) {
+                element.querySelector('.text_i').classList.add('hidden')
+            }
+            else {
+                element.querySelector('.text_i').classList.remove('hidden')
+            }
+        }
+
+        function bootstrapEventListener(state) {
+            const inputregex = /(?<a>\d*)([a-z])\^2\s{0,1}\+\s{0,1}(?<b>\d*)\2\s{0,1}\+\s{0,1}(?<c>\d*)/;
+            const input = document.querySelectorAll('.quadratic-input');
+
+            input.forEach(i => i.addEventListener('input', function(evt) {
+                calculateRoots(state.wasm.instance.exports.roots, state.importObject.env.buffer);
+            }));
+        }
+
+        function initWasm(state) {
+            state.importObject = {
+                env: {
+                    buffer: new WebAssembly.Memory({initial: 1})
+                }
+            };
+
+            WebAssembly.instantiateStreaming(fetch('/poly.wasm'), state.importObject)
+                .then(obj => {
+                    state.wasm = obj;
+                    bootstrapEventListener(state);
+                    calculateRoots(state.wasm.instance.exports.roots, state.importObject.env.buffer);
+                }
+            );
+        }
+    </script>
+    <style>
+        .root_text {
+            display: block;
+        }
+        .root_text span {
+            margin: 0 .5em;
+        }
+        span.text_imag {
+            margin-right: 0;
+        }
+        span.text_i {
+            margin-left: 0;
+            font-style: italic;
+        }
+        .math {
+            font-style: italic;
+        }
+        .answer {
+            margin-top: 20px;
+        }
+        .math .sign {
+            margin: 0 0.5em;
+        }
+        .quadratic-input {
+            width: 5em;
+        }
+        input:invalid {
+            width: 5em;
+            outline: 2px solid #ff5555;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebAssembly Quadratic Polynomial Solver</h1> 
+    <label>
+        Enter a quadratic polynomial
+        <!-- <input pattern="\d*?([a-z])\^2\s{0,1}\+\s{0,1}\d*\1\s{0,1}\+\s{0,1}\d*" type="text"/> -->
+    </label>
+    <div class="math">
+        <input class="quadratic-input" type="text" id="quad_a" inputmode="numeric" min="1" value="1">
+        x<sup>2</sup><span class="sign">+</span>
+        <input class="quadratic-input" type="text" id="quad_b" inputmode="numeric" value="0">
+        x<span class="sign">+</span>
+        <input class="quadratic-input" type="text" id="quad_c" inputmode="numeric" value="-1">
+    </div>
+
+    <div class="answer">
+        <div class="root root_1">Root 1: <span class="root_text"><span class="text_real"></span><span class="text_sign"></span><span class="text_imag"></span><span class="text_i">i</span></span></div>
+        <div class="root root_2">Root 2: <span class="root_text"><span class="text_real"></span><span class="text_sign"></span><span class="text_imag"></span><span class="text_i">i</span></span></div>
+    </div>
+
+</body>
+</html>
