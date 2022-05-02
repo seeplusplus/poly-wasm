@@ -29,10 +29,7 @@
     )
 
     (func $clear_memory
-        (f32.store (i32.const 0) (f32.const 0))
-        (f32.store (i32.const 4) (f32.const 0))
-        (f32.store (i32.const 8) (f32.const 0))
-        (f32.store (i32.const 12) (f32.const 0))
+        (memory.fill (i32.const 0) (i32.const 0) (i32.const 16))
     )
 
     (func $get_roots (param $a f32) (param $b f32) (param $c f32) (param $is_complex i32) (param $discriminant f32)
